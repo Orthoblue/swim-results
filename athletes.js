@@ -1,0 +1,1 @@
+var A=[{'n':'Daniel Wiffen','c':5,'r':[{'e':'1500 Free','t':'14:51.38','p':null,'rt':null,'m':'Irish Open','d':'2026-04-08'}]}];
