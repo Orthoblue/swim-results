@@ -1,1 +1,34 @@
-REAL_CONTENT_WILL_BE_REPLACED
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Swim Results</title>
+<style>body{font-family:sans-serif;margin:20px}input{padding:8px;width:300px}table{border-collapse:collapse;width:100%;margin-top:10px}td,th{border:1px solid #ddd;padding:6px}tr:hover{background:#f0f0f0;cursor:pointer}.time{font-weight:bold;color:#0066cc}</style>
+</head><body>
+<h2>Swimming Results Search</h2>
+<p>Type a name (Wiffen, Schlosshan...):</p>
+<input id="q" onkeyup="go()" placeholder="Search...">
+<div id="out"></div>
+<script>
+var A=[{"n":"Daniel Wiffen","c":5,"r":[{"e":"1500 Free","t":"14:51.38","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"},{"e":"200 Free","t":"1:50.19","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"},{"e":"400 Free","t":"3:49.35","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"},{"e":"400 Free","t":"3:50.62","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"},{"e":"800 Free","t":"7:58.08","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"}]},{"n":"Nathan Wiffen","c":5,"r":[{"e":"400 Free","t":"3:54.12","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"},{"e":"400 Free","t":"3:53.93","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"},{"e":"800 Free","t":"8:12.68","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"},{"e":"1500 Free","t":"15:20.88","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"},{"e":"200 Free","t":"1:51.57","p":null,"m":"Irish Open & Commonwealth","d":"2026-04-08"}]},{"n":"Ciara Schlosshan","c":6,"r":[{"e":"200 Fly","t":"2:08.60","p":1,"m":"BUCS Long Course Champion","d":"2026-02-13"},{"e":"100 Fly","t":"58.38","p":1,"m":"BUCS Long Course Champion","d":"2026-02-13"},{"e":"100 Fly","t":"58.00","p":1,"m":"BUCS Long Course Champion","d":"2026-02-13"},{"e":"50 Fly","t":"26.97","p":1,"m":"BUCS Long Course Champion","d":"2026-02-13"}]}];
+function go(){
+  var q=document.getElementById("q").value.toLowerCase();
+  var o=document.getElementById("out");
+  if(q.length<2){o.innerHTML="";return}
+  var m=A.filter(function(a){return a.n.toLowerCase().indexOf(q)!=-1});
+  if(!m.length){o.innerHTML="<p>No matches</p>";return}
+  var h="<table><tr><th>Name</th><th>Results</th></tr>";
+  for(var i=0;i<m.length;i++) h+='<tr onclick="show(\''+m[i].n.replace(/'/g,"\\'")+'\')"><td>'+m[i].n+'</td><td>'+m[i].c+'</td></tr>';
+  h+="</table><div id=d></div>";
+  o.innerHTML=h;
+}
+function show(n){
+  var a=A.find(function(x){return x.n==n});
+  if(!a)return;
+  var h="<h3>"+n+"</h3><table><tr><th>Event</th><th>Time</th><th>Place</th><th>Meet</th><th>Date</th></tr>";
+  for(var i=0;i<a.r.length;i++){
+    var r=a.r[i];
+    h+="<tr><td>"+r.e+"</td><td class=time>"+r.t+"</td><td>"+(r.p||"—")+"</td><td>"+r.m+"</td><td>"+r.d+"</td></tr>";
+  }
+  h+="</table>";
+  document.getElementById("d").innerHTML=h;
+}
+</script>
+</body></html>
