@@ -1,71 +1,237 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Swimming Results</title>
 <style>
-body{font-family:system-ui,sans-serif;margin:0;background:#f4f6f8;color:#222}
-.wrap{max-width:960px;margin:0 auto;padding:20px}
-.card{background:#fff;padding:20px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-h1{margin:0 0 8px;font-size:1.5rem}
-input{width:100%;max-width:480px;padding:12px;font-size:16px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box}
-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
-th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #eee}
-th{background:#e8f0fe}
-.row{cursor:pointer}.row:hover{background:#f0f7ff}
-.time{font-family:monospace;font-weight:600;color:#1a73e8}
+:root{--bg:#f4f6f8;--card:#fff;--ink:#222;--muted:#555;--line:#eee;--head:#e8f0fe;--acc:#1a73e8;--hi:#f0f7ff}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1080px;margin:0 auto;padding:20px}
+.card{background:var(--card);padding:22px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
+h1{margin:0 0 6px;font-size:1.6rem}
+.sub{color:var(--muted);margin:0 0 14px}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 16px}
+.stat{background:var(--head);border-radius:8px;padding:10px 14px;min-width:110px}
+.stat b{display:block;font-size:1.2rem;color:var(--acc)}
+.stat span{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px}
+.tabs button{border:1px solid #d0d7de;background:#fff;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer}
+.tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+input,select{width:100%;max-width:520px;padding:12px;font-size:16px;border:1px solid #ccc;border-radius:6px;margin:0 8px 8px 0}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--head);position:sticky;top:0}
+.row{cursor:pointer}.row:hover{background:var(--hi)}
+.time{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600;color:var(--acc);white-space:nowrap}
+.splits{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#444}
+.muted{color:var(--muted);font-size:13px}
+.pill{display:inline-block;background:var(--head);border-radius:999px;padding:1px 8px;font-size:11px;margin-left:6px;color:#334}
+#status{color:var(--muted);font-size:13px;margin:6px 0 8px}
+h3{margin:16px 0 0}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:0}
+footer{text-align:center;color:#999;font-size:12px;padding:12px}
 </style>
 </head>
 <body>
 <div class="wrap">
 <div class="card">
 <h1>Swimming Results</h1>
-<p style="color:#555">Search athletes. Click a name to see races.</p>
-<input id="q" placeholder="Type a name (Wiffen, Schlosshan, Bailey...)" oninput="go()">
-<div id="status" style="color:#666;font-size:13px;margin:8px 0"></div>
+<p class="sub">Search athletes, view their races, personal bests and event rankings. Reaction times and splits are shown when the source file included them.</p>
+<div class="stats" id="stats"></div>
+<div class="tabs">
+<button class="on" id="tab-search" onclick="tab('search')">Athlete Search</button>
+<button id="tab-best" onclick="tab('best')">Best Times</button>
+<button id="tab-rank" onclick="tab('rank')">Rankings</button>
+</div>
+
+<div id="panel-search">
+<input id="q" placeholder="Type a name (Wiffen, Schlosshan, Bailey…)" oninput="go()">
+<div id="status"></div>
 <div id="list"></div>
 <div id="detail"></div>
 </div>
+
+<div id="panel-best" hidden>
+<div class="filters">
+<input id="bq" placeholder="Filter by athlete or event (e.g. 100 Free, Wiffen)" oninput="best()">
+</div>
+<div id="best-status" class="muted"></div>
+<div id="best-out"></div>
+</div>
+
+<div id="panel-rank" hidden>
+<div class="filters">
+<select id="re" onchange="rank()"></select>
+<select id="rc" onchange="rank()">
+<option value="">All courses</option>
+<option value="SC">Short course (SC)</option>
+<option value="LC">Long course (LC)</option>
+</select>
+<select id="rg" onchange="rank()">
+<option value="">All genders</option>
+<option value="F">Female</option>
+<option value="M">Male / Open</option>
+</select>
+</div>
+<div id="rank-status" class="muted"></div>
+<div id="rank-out"></div>
+</div>
+</div>
 </div>
 <script>var A=[];</script>
-<script src="a0.js"></script>
-<script src="s0.js"></script>
-<script src="s1.js"></script>
+<script src="d0.js"></script>
+<script src="d1.js"></script>
+<script src="d2.js"></script>
+<script src="d3.js"></script>
+<script src="d4.js"></script>
+<script src="d5.js"></script>
+<script src="d6.js"></script>
+<script src="d7.js"></script>
+<script src="d8.js"></script>
 <script>
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];});}
+function timeKey(t){
+  if(!t) return 1e12;
+  var p=String(t).split(":");
+  if(p.length===3) return (+p[0])*3600+(+p[1])*60+(+p[2]);
+  if(p.length===2) return (+p[0])*60+(+p[1]);
+  return +p[0];
+}
+function stats(){
+  var meets={};
+  var nRes=0, nRt=0, nSp=0;
+  A.forEach(function(a){
+    (a.r||[]).forEach(function(r){
+      nRes++;
+      if(r.m) meets[r.m]=1;
+      if(r.rt) nRt++;
+      if(r.s&&r.s.length) nSp++;
+    });
+  });
+  var items=[["Athletes",A.length],["Meets",Object.keys(meets).length],["Results",nRes],["With RT",nRt],["With splits",nSp]];
+  document.getElementById("stats").innerHTML=items.map(function(x){return '<div class="stat"><b>'+x[1].toLocaleString()+'</b><span>'+x[0]+'</span></div>';}).join("");
+  var evs={};
+  A.forEach(function(a){(a.r||[]).forEach(function(r){if(r.e) evs[r.e]=(evs[r.e]||0)+1;});});
+  var names=Object.keys(evs).sort(function(a,b){
+    var oa=["50 Free","100 Free","200 Free","400 Free","800 Free","1500 Free","50 Back","100 Back","200 Back","50 Breast","100 Breast","200 Breast","50 Fly","100 Fly","200 Fly","100 IM","200 IM","400 IM"].indexOf(a);
+    var ob=["50 Free","100 Free","200 Free","400 Free","800 Free","1500 Free","50 Back","100 Back","200 Back","50 Breast","100 Breast","200 Breast","50 Fly","100 Fly","200 Fly","100 IM","200 IM","400 IM"].indexOf(b);
+    if(oa<0) oa=999; if(ob<0) ob=999;
+    if(oa!==ob) return oa-ob;
+    return evs[b]-evs[a]||a.localeCompare(b);
+  });
+  var sel=document.getElementById("re");
+  sel.innerHTML=names.map(function(n){return "<option value=\""+esc(n)+"\">"+esc(n)+" ("+evs[n]+")</option>";}).join("");
+  if(names.indexOf("100 Free")>=0) sel.value="100 Free";
+}
+function tab(id){
+  ["search","best","rank"].forEach(function(t){
+    document.getElementById("panel-"+t).hidden=(t!==id);
+    document.getElementById("tab-"+t).className=(t===id)?"on":"";
+  });
+  if(id==="best") best();
+  if(id==="rank") rank();
+}
 function go(){
   var q=document.getElementById("q").value.toLowerCase().trim();
   var list=document.getElementById("list");
   var status=document.getElementById("status");
   var detail=document.getElementById("detail");
   detail.innerHTML="";
-  if(q.length<2){list.innerHTML="";status.textContent="Type at least 2 characters";return}
-  var m=A.filter(function(a){return a.n.toLowerCase().indexOf(q)!==-1});
-  status.textContent=m.length+" match"+(m.length===1?"":"es")+" of "+A.length;
-  if(!m.length){list.innerHTML="<p>No matches</p>";return}
-  var h="<table><tr><th>Name</th><th>Results</th></tr>";
-  for(var i=0;i<Math.min(m.length,15);i++){
-    h+='<tr class="row" data-n="'+m[i].n.replace(/"/g,'"')+'"><td>'+m[i].n+'</td><td>'+m[i].c+'</td></tr>';
+  if(q.length<2){list.innerHTML="";status.textContent="Type at least 2 characters to search "+A.length.toLocaleString()+" athletes";return;}
+  var m=A.filter(function(a){return a.n.toLowerCase().indexOf(q)!==-1;});
+  status.textContent=m.length+" match"+(m.length===1?"":"es")+" of "+A.length.toLocaleString();
+  if(!m.length){list.innerHTML="<p>No matches</p>";return;}
+  var h="<table><tr><th>Name</th><th>Club</th><th>YOB</th><th>Results</th></tr>";
+  var showN=Math.min(m.length,25);
+  for(var i=0;i<showN;i++){
+    var a=m[i];
+    h+='<tr class="row" data-i="'+A.indexOf(a)+'"><td>'+esc(a.n)+(a.g?'<span class="pill">'+esc(a.g)+"</span>":"")+"</td><td>"+esc(a.club||"—")+"</td><td>"+(a.y||"—")+"</td><td>"+(a.c||(a.r||[]).length)+"</td></tr>";
   }
   h+="</table>";
+  if(m.length>showN) h+="<p class='muted'>Showing first "+showN+" of "+m.length+". Type more of the name to narrow the list.</p>";
   list.innerHTML=h;
-  document.querySelectorAll(".row").forEach(function(r){
-    r.onclick=function(){show(this.getAttribute("data-n"))};
+  document.querySelectorAll("#list .row").forEach(function(r){
+    r.onclick=function(){show(parseInt(this.getAttribute("data-i"),10));};
   });
-  if(m.length===1) show(m[0].n);
-  else detail.innerHTML='<p style="color:#666;margin-top:8px">Click an athlete to see races</p>';
+  if(m.length===1) show(A.indexOf(m[0]));
+  else detail.innerHTML='<p class="muted">Click an athlete to see their races</p>';
 }
-function show(n){
-  var a=A.find(function(x){return x.n===n});
-  if(!a)return;
-  var h="<h3>"+n+" — "+a.c+" results</h3><table><tr><th>Event</th><th>Time</th><th>Place</th><th>Meet</th><th>Date</th></tr>";
-  for(var i=0;i<a.r.length;i++){
-    var r=a.r[i];
-    h+="<tr><td>"+r.e+"</td><td class='time'>"+r.t+"</td><td>"+(r.p||"—")+"</td><td>"+r.m+"</td><td>"+r.d+"</td></tr>";
+function show(i){
+  var a=A[i]; if(!a) return;
+  var races=(a.r||[]).slice().sort(function(x,y){return (y.d||"").localeCompare(x.d||"")||(x.e||"").localeCompare(y.e||"");});
+  var h="<h3>"+esc(a.n)+" — "+races.length+" results</h3>";
+  if(a.club||a.y||a.g){h+="<p class='muted'>"+[a.g,a.y?("YOB "+a.y):"",a.club].filter(Boolean).join(" · ")+"</p>";}
+  h+="<table><tr><th>Event</th><th>Time</th><th>RT</th><th>Splits</th><th>Place</th><th>Round</th><th>Meet</th><th>Date</th></tr>";
+  for(var i=0;i<races.length;i++){
+    var r=races[i];
+    var ev=esc(r.e)+(r.cs?'<span class="pill">'+esc(r.cs)+"</span>":"");
+    var spl=r.s&&r.s.length?('<span class="splits">'+esc(r.s.join(" · "))+"</span>"):"—";
+    h+="<tr><td>"+ev+"</td><td class='time'>"+esc(r.t)+"</td><td>"+(r.rt!=null?esc(r.rt):"—")+"</td><td>"+spl+"</td><td>"+(r.p||"—")+"</td><td>"+(r.rnd||"—")+"</td><td>"+esc(r.m||"")+"</td><td>"+esc(r.d||"")+"</td></tr>";
   }
   h+="</table>";
   document.getElementById("detail").innerHTML=h;
 }
+function best(){
+  var q=(document.getElementById("bq").value||"").toLowerCase().trim();
+  var rows=[];
+  A.forEach(function(a){
+    if(q && a.n.toLowerCase().indexOf(q)===-1 && !(q.length>=2)) return;
+    var pbs={};
+    (a.r||[]).forEach(function(r){
+      var k=r.e+"|"+(r.cs||"");
+      if(!pbs[k]||timeKey(r.t)<timeKey(pbs[k].t)) pbs[k]=r;
+    });
+    Object.keys(pbs).forEach(function(k){
+      var r=pbs[k];
+      if(q && a.n.toLowerCase().indexOf(q)===-1 && (r.e||"").toLowerCase().indexOf(q)===-1) return;
+      rows.push({n:a.n,g:a.g,e:r.e,cs:r.cs,t:r.t,rt:r.rt,m:r.m,d:r.d,p:r.p});
+    });
+  });
+  rows.sort(function(a,b){return a.e.localeCompare(b.e)||(a.cs||"").localeCompare(b.cs||"")||timeKey(a.t)-timeKey(b.t)||a.n.localeCompare(b.n);});
+  document.getElementById("best-status").textContent=rows.length.toLocaleString()+" personal bests"+(q?" matching “"+q+"”":"");
+  var h="<table><tr><th>Athlete</th><th>Event</th><th>Time</th><th>RT</th><th>Meet</th><th>Date</th></tr>";
+  var n=Math.min(rows.length,200);
+  for(var i=0;i<n;i++){
+    var r=rows[i];
+    h+="<tr><td>"+esc(r.n)+"</td><td>"+esc(r.e)+(r.cs?'<span class="pill">'+esc(r.cs)+"</span>":"")+"</td><td class='time'>"+esc(r.t)+"</td><td>"+(r.rt||"—")+"</td><td>"+esc(r.m||"")+"</td><td>"+esc(r.d||"")+"</td></tr>";
+  }
+  h+="</table>";
+  if(rows.length>n) h+="<p class='muted'>Showing first "+n+" of "+rows.length.toLocaleString()+". Filter by athlete or event to narrow the list.</p>";
+  document.getElementById("best-out").innerHTML=h;
+}
+function rank(){
+  var ev=document.getElementById("re").value;
+  var cs=document.getElementById("rc").value;
+  var g=document.getElementById("rg").value;
+  var bests=[];
+  A.forEach(function(a){
+    if(g && a.g && a.g!==g) return;
+    var pb=null;
+    (a.r||[]).forEach(function(r){
+      if(r.e!==ev) return;
+      if(cs && r.cs && r.cs!==cs) return;
+      if(!pb||timeKey(r.t)<timeKey(pb.t)) pb={a:a,r:r};
+    });
+    if(pb) bests.push(pb);
+  });
+  bests.sort(function(x,y){return timeKey(x.r.t)-timeKey(y.r.t);});
+  document.getElementById("rank-status").textContent=bests.length.toLocaleString()+" athletes ranked in "+ev+(cs?" "+cs:"");
+  var h="<table><tr><th>#</th><th>Athlete</th><th>Time</th><th>RT</th><th>Place at meet</th><th>Meet</th><th>Date</th></tr>";
+  var n=Math.min(bests.length,100);
+  for(var i=0;i<n;i++){
+    var a=bests[i].a,r=bests[i].r;
+    h+="<tr><td>"+(i+1)+"</td><td>"+esc(a.n)+(a.g?'<span class="pill">'+esc(a.g)+"</span>":"")+"</td><td class='time'>"+esc(r.t)+"</td><td>"+(r.rt||"—")+"</td><td>"+(r.p||"—")+"</td><td>"+esc(r.m||"")+(r.cs?'<span class="pill">'+esc(r.cs)+"</span>":"")+"</td><td>"+esc(r.d||"")+"</td></tr>";
+  }
+  h+="</table>";
+  document.getElementById("rank-out").innerHTML=h;
+}
+document.addEventListener("DOMContentLoaded",function(){
+  stats();
+  document.getElementById("status").textContent="Ready — "+A.length.toLocaleString()+" athletes loaded. Type at least 2 characters.";
+});
 </script>
-<p style="text-align:center;color:#999;font-size:12px;padding:12px">Live dashboard · batch update</p>
+<footer>Live dashboard · updated from official Hy-Tek and PDF results · week ending 23 Nov 2026</footer>
 </body>
 </html>
