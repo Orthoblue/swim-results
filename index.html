@@ -101,6 +101,362 @@ footer{text-align:center;color:#999;font-size:12px;padding:12px}
 <script src="ncaa-d1-7.js"></script>
 <script src="dwc.js"></script>
 <script>
+(function(){
+/** Merge duplicate athlete records in A after all data scripts have loaded. */
+function foldName(s) {
+  s = String(s == null ? "" : s);
+  try { s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); } catch (e) {}
+  s = s.replace(/[\u2018\u2019\u201A\u2032`´]/g, "'");
+  s = s.replace(/[\u201C\u201D]/g, "");
+  return s;
+}
+
+function nameKey(n) {
+  n = foldName(n).replace(/\s+/g, " ").trim();
+  if (!n) return "";
+  if (n.indexOf(",") >= 0) {
+    var parts = n.split(",");
+    var last = parts[0].trim();
+    var first = parts.slice(1).join(" ").trim();
+    if (first && last) n = first + " " + last;
+  }
+  n = n.toLowerCase();
+  n = n.replace(/'/g, "");
+  n = n.replace(/[^a-z0-9\s-]/g, " ");
+  n = n.replace(/\s+/g, " ").trim();
+  var toks = n.split(" ").filter(Boolean);
+  var joined = [];
+  for (var i = 0; i < toks.length; i++) {
+    if (i < toks.length - 1 && (toks[i] === "o" || toks[i] === "mc" || toks[i] === "mac" || toks[i] === "st")) {
+      joined.push(toks[i] + toks[i + 1]);
+      i++;
+    } else {
+      joined.push(toks[i]);
+    }
+  }
+  var kept = [];
+  for (var i = 0; i < joined.length; i++) {
+    var isInitial = joined[i].length === 1;
+    if (isInitial && i > 0 && i < joined.length - 1) continue;
+    kept.push(joined[i]);
+  }
+  return kept.join(" ");
+}
+
+function preferName(a, b) {
+  var an = String(a || ""), bn = String(b || "");
+  if (!an) return bn;
+  if (!bn) return an;
+  if (an.length !== bn.length) return an.length >= bn.length ? an : bn;
+  return an;
+}
+
+function preferScalar(a, b) {
+  if (a == null || a === "") return b;
+  if (b == null || b === "") return a;
+  return a;
+}
+
+function clubsList(s) {
+  if (!s) return [];
+  return String(s).split(/\s*·\s*|\s*\|\s*/).map(function(x){ return x.replace(/\s+/g, " ").trim(); }).filter(Boolean);
+}
+
+function mergeClubs(a, b) {
+  var seen = {}, out = [];
+  clubsList(a).concat(clubsList(b)).forEach(function(c) {
+    var k = c.toLowerCase();
+    if (!seen[k]) { seen[k] = 1; out.push(c); }
+  });
+  return out.join(" · ");
+}
+
+function raceSig(r) {
+  return [r.e || "", r.t || "", r.m || "", r.d || "", r.rnd || ""].join("\t");
+}
+
+function richerRace(a, b) {
+  function score(r) {
+    return (r.rt ? 1 : 0) + (r.s && r.s.length ? 1 : 0) + (r.p != null && r.p !== "" ? 1 : 0) + (r.cs ? 1 : 0);
+  }
+  return score(b) > score(a) ? b : a;
+}
+
+function mergeRaces(lists) {
+  var map = {};
+  var order = [];
+  lists.forEach(function(list) {
+    (list || []).forEach(function(r) {
+      var k = raceSig(r);
+      if (!map[k]) { map[k] = r; order.push(k); }
+      else map[k] = richerRace(map[k], r);
+    });
+  });
+  var out = order.map(function(k){ return map[k]; });
+  out.sort(function(x, y) {
+    return (x.d || "").localeCompare(y.d || "") || (x.e || "").localeCompare(y.e || "") || (x.rnd || "").localeCompare(y.rnd || "");
+  });
+  return out;
+}
+
+function genderOf(a) {
+  var g = a && a.g;
+  if (g == null || g === "") return null;
+  g = String(g).toUpperCase();
+  if (g === "F" || g === "W") return "F";
+  if (g === "M" || g === "O") return "M";
+  return g;
+}
+
+function yearOf(a) {
+  var y = a && a.y;
+  if (y == null || y === "") return null;
+  y = parseInt(y, 10);
+  return isNaN(y) ? null : y;
+}
+
+
+var COMMON_SURNAMES = {
+  smith:1, jones:1, williams:1, brown:1, taylor:1, davies:1, wilson:1, evan:1, evans:1,
+  thomas:1, roberts:1, johnson:1, lewis:1, walker:1, robinson:1, wood:1, thompson:1,
+  white:1, watson:1, jackson:1, wright:1, green:1, harris:1, cooper:1, king:1, hall:1,
+  clarke:1, clark:1, hill:1, scott:1, moore:1, anderson:1, miller:1, baker:1, harrison:1,
+  martin:1, davis:1, wright:1, morgan:1, allen:1, james:1, phillips:1, campbell:1,
+  bell:1, collins:1, kelly:1, price:1, hughes:1, murphy:1, murray:1, morris:1, cook:1,
+  adams:1, parker:1, richardson:1, bennett:1, lee:1, ward:1, watson:1, bailey:1,
+  graham:1, hamilton:1, reid:1, russell:1, stewart:1, young:1, mitchell:1, cox:1,
+  stevens:1, palmer:1, milne:1, miller:1, grant:1, hunter:1, patterson:1, mcdonald:1,
+  fraser:1, gordon:1, cameron:1, ross:1, miler:1, fox:1, west:1, brooks:1, reed:1,
+  gray:1, grey:1, kelley:1, oconnor:1, obrien:1, oneill:1, doyle:1, ryan:1, walsh:1,
+  kennedy:1, sullivan:1, carroll:1, collins:1, duffy:1, byrne:1, dunne:1, connor:1,
+  connors:1, fitzgerald:1, fitzpatrick:1, nolan:1, lynch:1, farrell:1, sexton:1,
+  davis:1, nelson:1, perez:1, roberts:1, turner:1, phillips:1, campbell:1, parker:1,
+  edwards:1, collins:1, stewart:1, morris:1, nguyen:1, chen:1, wang:1, li:1, kim:1,
+  patel:1, singh:1, kumar:1, ali:1, khan:1, ahmed:1, hassan:1, wright:1, moody:1
+};
+var COMMON_FIRST = {
+  james:1, john:1, robert:1, michael:1, william:1, david:1, richard:1, joseph:1,
+  thomas:1, charles:1, christopher:1, daniel:1, matthew:1, anthony:1, mark:1,
+  donald:1, steven:1, paul:1, andrew:1, joshua:1, kenneth:1, kevin:1, brian:1,
+  george:1, timothy:1, ronald:1, edward:1, jason:1, jeffrey:1, ryan:1, jacob:1,
+  gary:1, nicholas:1, eric:1, jonathan:1, stephen:1, larry:1, justin:1, scott:1,
+  brandon:1, benjamin:1, samuel:1, sam:1, gregory:1, alexander:1, alex:1, patrick:1,
+  jack:1, max:1, luke:1, harry:1, oliver:1, oscar:1, charlie:1, george:1, henry:1,
+  adam:1, tom:1, ben:1, joe:1, dan:1, chris:1, mike:1, matt:1, nathan:1, noah:1,
+  mary:1, patricia:1, jennifer:1, linda:1, elizabeth:1, barbara:1, susan:1,
+  jessica:1, sarah:1, karen:1, nancy:1, lisa:1, betty:1, margaret:1, sandra:1,
+  ashley:1, kimberly:1, emily:1, donna:1, michelle:1, dorothy:1, carol:1, amanda:1,
+  melissa:1, deborah:1, stephanie:1, rebecca:1, sharon:1, laura:1, cynthia:1,
+  amy:1, anna:1, kathleen:1, amelia:1, emma:1, olivia:1, isla:1, charlotte:1,
+  sophie:1, sophia:1, grace:1, chloe:1, mia:1, lucy:1, ella:1, evie:1, poppy:1,
+  lily:1, freya:1, ivy:1, willow:1, daisy:1, erin:1, katie:1, kate:1, catherine:1,
+  kate:1, alice:1, jessica:1, rachel:1, hannah:1, lauren:1, nicole:1, megan:1,
+  abigail:1, ella:1, leah:1, ruby:1, evie:1, holly:1, amber:1, molly:1, ella:1
+};
+
+function firstLast(n) {
+  var k = nameKey(n).split(" ").filter(Boolean);
+  if (!k.length) return { first: "", last: "" };
+  return { first: k[0], last: k[k.length - 1] };
+}
+
+function isCommonName(n) {
+  var fl = firstLast(n);
+  return !!(COMMON_FIRST[fl.first] && COMMON_SURNAMES[fl.last]);
+}
+
+function hasScy(a) {
+  return (a.r || []).some(function(r){ return r.cs === "SCY"; });
+}
+
+function hasWorldCup(a) {
+  return (a.r || []).some(function(r){ return /World Aquatics Swimming World Cup/i.test(r.m || ""); });
+}
+
+function hasUkIrish(a) {
+  return (a.r || []).some(function(r){
+    if (r.cs === "SCY") return false;
+    if (/World Aquatics Swimming World Cup/i.test(r.m || "")) return false;
+    return true;
+  });
+}
+
+function isJuniorProfile(a) {
+  var y = yearOf(a);
+  if (y && y >= 2011) return true;
+  return (a.r || []).some(function(r){
+    return /Future Challenger|Age Group|Youth|Junior/i.test(r.m || "");
+  });
+}
+
+function ncaaSchoolKey(a) {
+  if (!hasScy(a) && !/\bUniversity\b|\bState University\b|University-/i.test(a.club || "")) return null;
+  var c = foldName(a.club || "").toLowerCase();
+  if (!c) return null;
+  // Irish/UK schools that happen to contain College should not count as NCAA schools unless SCY
+  if (!hasScy(a)) return null;
+  c = c.replace(/\s*-\s*[a-z]{2}$/i, "");
+  c = c.replace(/\buniversity\b|\buniv\.?\b|\bstate\b|\bcollege\b/g, " ");
+  c = c.replace(/\s+/g, " ").trim();
+  return c || null;
+}
+
+function universityConflict(a, b) {
+  var sa = ncaaSchoolKey(a), sb = ncaaSchoolKey(b);
+  if (!sa || !sb) return false;
+  if (sa === sb) return false;
+  if (sa.indexOf(sb) >= 0 || sb.indexOf(sa) >= 0) return false;
+  return true;
+}
+
+function juniorCollegeConflict(a, b) {
+  var ju = isJuniorProfile(a) && hasScy(b);
+  var uj = isJuniorProfile(b) && hasScy(a);
+  return ju || uj;
+}
+
+function circuitOf(a) {
+  var bits = { UK: hasUkIrish(a), NCAA: hasScy(a), WC: hasWorldCup(a) };
+  return bits;
+}
+
+function sameOrCompatibleCircuit(a, b) {
+  var ca = circuitOf(a), cb = circuitOf(b);
+  // compatible: any overlap, or UK+WC, or NCAA+WC
+  if (ca.UK && cb.UK) return "UK";
+  if (ca.NCAA && cb.NCAA) return "NCAA";
+  if (ca.WC && cb.WC) return "WC";
+  if ((ca.UK && cb.WC) || (ca.WC && cb.UK)) return "UK+WC";
+  if ((ca.NCAA && cb.WC) || (ca.WC && cb.NCAA)) return "NCAA+WC";
+  if ((ca.UK && cb.NCAA) || (ca.NCAA && cb.UK)) return "UK+NCAA";
+  return "OTHER";
+}
+
+function shouldMerge(a, b) {
+  if (!compatible(a, b)) return false;
+  if (universityConflict(a, b)) return false;
+  if (juniorCollegeConflict(a, b)) return false;
+  var circuit = sameOrCompatibleCircuit(a, b);
+  var bothYears = yearOf(a) != null && yearOf(b) != null;
+  var common = isCommonName(a.n) || isCommonName(b.n);
+  if (circuit === "UK+NCAA") {
+    // Cross-Atlantic club vs college: only distinctive names with years on both sides
+    if (common) return false;
+    if (!bothYears) return false;
+    return true;
+  }
+  if (bothYears) return true;
+  // Missing year on one or both sides: merge only in the same/compatible circuit
+  // and not for common names unless both records are clearly the same circuit (UK+UK, NCAA+NCAA same school, or WC involved with a distinctive name)
+  if (circuit === "UK+WC" || circuit === "NCAA+WC" || circuit === "WC") {
+    return !common || bothYears;
+  }
+  if (circuit === "UK" || circuit === "NCAA") {
+    if (common && !bothYears) return false;
+    return true;
+  }
+  return false;
+}
+
+function compatible(a, b) {
+  var ga = genderOf(a), gb = genderOf(b);
+  if (ga && gb && ga !== gb) return false;
+  var ya = yearOf(a), yb = yearOf(b);
+  if (ya && yb && ya !== yb) return false;
+  return true;
+}
+
+
+function clusterCompatible(group) {
+  // Union-find on pairs that pass shouldMerge. Conflicting years/genders/affiliations stay apart.
+  var n = group.length;
+  var parent = [];
+  for (var i = 0; i < n; i++) parent[i] = i;
+  function find(i){ return parent[i] === i ? i : (parent[i] = find(parent[i])); }
+  function union(i, j){ i = find(i); j = find(j); if (i !== j) parent[j] = i; }
+  for (var i = 0; i < n; i++) {
+    for (var j = i + 1; j < n; j++) {
+      if (shouldMerge(group[i], group[j])) union(i, j);
+    }
+  }
+  var buckets = {};
+  for (var i = 0; i < n; i++) {
+    var r = find(i);
+    if (!buckets[r]) buckets[r] = [];
+    buckets[r].push(group[i]);
+  }
+  return Object.keys(buckets).map(function(k){ return buckets[k]; });
+}
+
+function mergeCluster(members) {
+  if (members.length === 1) {
+    var only = members[0];
+    only.c = (only.r || []).length;
+    return only;
+  }
+  var n = "";
+  var g = null, y = null, club = "";
+  members.forEach(function(a) {
+    n = preferName(n, a.n);
+    if (!g) g = genderOf(a);
+    if (!y) y = yearOf(a);
+    club = mergeClubs(club, a.club);
+  });
+  var races = mergeRaces(members.map(function(a){ return a.r; }));
+  var out = { n: n, c: races.length, r: races };
+  if (g) out.g = g;
+  if (y) out.y = y;
+  if (club) out.club = club;
+  return out;
+}
+
+function mergeAthletes(list) {
+  var groups = {};
+  var empty = [];
+  (list || []).forEach(function(a, idx) {
+    var k = nameKey(a && a.n);
+    if (!k) { empty.push(a); return; }
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(a);
+  });
+  var out = empty.slice();
+  var report = { groupsConsidered: 0, mergedGroups: 0, recordsMergedAway: 0, merges: [] };
+  Object.keys(groups).forEach(function(k) {
+    var g = groups[k];
+    if (g.length === 1) { out.push(g[0]); return; }
+    report.groupsConsidered++;
+    var clusters = clusterCompatible(g);
+    clusters.forEach(function(c) {
+      if (c.length > 1) {
+        report.mergedGroups++;
+        report.recordsMergedAway += (c.length - 1);
+        report.merges.push({
+          key: k,
+          from: c.map(function(a) {
+            return { n: a.n, g: a.g, y: a.y, club: a.club, c: a.c || (a.r || []).length, meets: uniqueMeets(a) };
+          })
+        });
+      }
+      out.push(mergeCluster(c));
+    });
+  });
+  out.sort(function(a, b){ return String(a.n || "").localeCompare(String(b.n || "")); });
+  report.before = list.length;
+  report.after = out.length;
+  return { athletes: out, report: report };
+}
+
+function uniqueMeets(a) {
+  var m = {};
+  (a.r || []).forEach(function(r){ if (r.m) m[r.m] = 1; });
+  return Object.keys(m);
+}
+
+  var _merged = mergeAthletes(A);
+  A = _merged.athletes;
+})();
+</script>
+<script>
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];});}
 function timeKey(t){
   if(!t) return 1e12;
