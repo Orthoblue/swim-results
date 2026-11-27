@@ -66,7 +66,8 @@ footer{text-align:center;color:#999;font-size:12px;padding:12px}
 <select id="re" onchange="rank()"></select>
 <select id="rc" onchange="rank()">
 <option value="">All courses</option>
-<option value="SC">Short course (SC)</option>
+<option value="SCY">Short course yards (SCY)</option>
+<option value="SC">Short course meters (SC)</option>
 <option value="LC">Long course (LC)</option>
 </select>
 <select id="rg" onchange="rank()">
@@ -90,6 +91,14 @@ footer{text-align:center;color:#999;font-size:12px;padding:12px}
 <script src="d6.js"></script>
 <script src="d7.js"></script>
 <script src="d8.js"></script>
+<script src="ncaa-d1-0.js"></script>
+<script src="ncaa-d1-1.js"></script>
+<script src="ncaa-d1-2.js"></script>
+<script src="ncaa-d1-3.js"></script>
+<script src="ncaa-d1-4.js"></script>
+<script src="ncaa-d1-5.js"></script>
+<script src="ncaa-d1-6.js"></script>
+<script src="ncaa-d1-7.js"></script>
 <script>
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];});}
 function timeKey(t){
@@ -115,8 +124,8 @@ function stats(){
   var evs={};
   A.forEach(function(a){(a.r||[]).forEach(function(r){if(r.e) evs[r.e]=(evs[r.e]||0)+1;});});
   var names=Object.keys(evs).sort(function(a,b){
-    var oa=["50 Free","100 Free","200 Free","400 Free","800 Free","1500 Free","50 Back","100 Back","200 Back","50 Breast","100 Breast","200 Breast","50 Fly","100 Fly","200 Fly","100 IM","200 IM","400 IM"].indexOf(a);
-    var ob=["50 Free","100 Free","200 Free","400 Free","800 Free","1500 Free","50 Back","100 Back","200 Back","50 Breast","100 Breast","200 Breast","50 Fly","100 Fly","200 Fly","100 IM","200 IM","400 IM"].indexOf(b);
+    var oa=["50 Free","100 Free","200 Free","400 Free","500 Free","800 Free","1500 Free","1650 Free","50 Back","100 Back","200 Back","50 Breast","100 Breast","200 Breast","50 Fly","100 Fly","200 Fly","100 IM","200 IM","400 IM"].indexOf(a);
+    var ob=["50 Free","100 Free","200 Free","400 Free","500 Free","800 Free","1500 Free","1650 Free","50 Back","100 Back","200 Back","50 Breast","100 Breast","200 Breast","50 Fly","100 Fly","200 Fly","100 IM","200 IM","400 IM"].indexOf(b);
     if(oa<0) oa=999; if(ob<0) ob=999;
     if(oa!==ob) return oa-ob;
     return evs[b]-evs[a]||a.localeCompare(b);
@@ -232,6 +241,6 @@ document.addEventListener("DOMContentLoaded",function(){
   document.getElementById("status").textContent="Ready — "+A.length.toLocaleString()+" athletes loaded. Type at least 2 characters.";
 });
 </script>
-<footer>Live dashboard · updated from official Hy-Tek and PDF results · week ending 23 Nov 2026</footer>
+<footer>Live dashboard · official Hy-Tek and PDF results · includes NCAA D1 (SCY)</footer>
 </body>
 </html>
