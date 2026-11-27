@@ -353,10 +353,56 @@ function sameOrCompatibleCircuit(a, b) {
   return "OTHER";
 }
 
+var CLUB_ALIASES = {
+  tavw:"Tavistock", tavistock:"Tavistock", tavistocksc:"Tavistock", tavistockswimmingclub:"Tavistock",
+  okew:"Okehampton", okehampton:"Okehampton", okehamptonotters:"Okehampton", okehamptonotterslsc:"Okehampton",
+  excw:"Exeter City", excwsw:"Exeter City", exetercity:"Exeter City",
+  exetercityswimmingclub:"Exeter City", exetercityswimmingclubsw:"Exeter City",
+  mtkelly:"Mount Kelly", mountkelly:"Mount Kelly", mountkellyswimming:"Mount Kelly",
+  plymouthlea:"Plymouth Leander", plymouthleander:"Plymouth Leander", plymouthleandersc:"Plymouth Leander",
+  plymouthcol:"Plymouth College Aquatics", plymouthcollege:"Plymouth College Aquatics", plymouthcollegeaquatics:"Plymouth College Aquatics",
+  caradon:"Caradon", caradonsc:"Caradon", caradonswimmingclub:"Caradon", caradonswimmingclubsw:"Caradon",
+  devonport:"Devonport Royal", devonportroyal:"Devonport Royal", devonportroyalsa:"Devonport Royal",
+  devonportroyalswimmingassoc:"Devonport Royal", devonportroyalswimmingassocsw:"Devonport Royal",
+  millfield:"Millfield", millfieldschool:"Millfield",
+  ncornwall:"North Cornwall Dragons", northcornwall:"North Cornwall Dragons", northcornwalldragons:"North Cornwall Dragons",
+  brxw:"Brixham", brxwsw:"Brixham", brixham:"Brixham",
+  crew:"Crediton", crewsw:"Crediton", crediton:"Crediton",
+  laun:"Launceston", launceston:"Launceston"
+};
+
+function normClubName(c) {
+  c = String(c == null ? "" : c).replace(/\s+/g, " ").trim().replace(/-SW$/i, "").trim();
+  if (!c) return "";
+  var k = c.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return CLUB_ALIASES[k] || c;
+}
+
+function isNatCode(c) {
+  var s = String(c || "").trim();
+  return /^[A-Z]{3}$/i.test(s);
+}
+
+function ukClubConflict(a, b) {
+  // Same name but different UK clubs (after aliasing TAVW/Tavistock etc.)
+  // stay separate. Country codes like GBR/IRL are ignored so World Cup
+  // records still merge with a swimmer's home club.
+  var ca = clubsList(a.club).map(normClubName).filter(function(c){ return c && !isNatCode(c); });
+  var cb = clubsList(b.club).map(normClubName).filter(function(c){ return c && !isNatCode(c); });
+  if (!ca.length || !cb.length) return false;
+  var seen = {};
+  ca.forEach(function(c){ seen[c.toLowerCase()] = 1; });
+  for (var i = 0; i < cb.length; i++) {
+    if (seen[cb[i].toLowerCase()]) return false;
+  }
+  return true;
+}
+
 function shouldMerge(a, b) {
   if (!compatible(a, b)) return false;
   if (universityConflict(a, b)) return false;
   if (juniorCollegeConflict(a, b)) return false;
+  if (ukClubConflict(a, b)) return false;
   var circuit = sameOrCompatibleCircuit(a, b);
   var bothYears = yearOf(a) != null && yearOf(b) != null;
   var common = isCommonName(a.n) || isCommonName(b.n);
